@@ -6,6 +6,7 @@ import argparse
 import re
 import requests
 import http.cookiejar
+import time
 
 
 def lead0(num, max):
@@ -55,7 +56,7 @@ parser.add_argument('-v', '--verbose', action="store_true", help='Enables verbos
 parser.add_argument('-r', '--restrict-characters', action="store_true", help='Removes \'? < > \\ : * | " ^\' from file names')
 parser.add_argument('-c', '--cookies', type=str, nargs='?', default="", dest='cookies', metavar='PATH',
                     help='Optional cookies.txt file to load, can be used to allow the script to "log in" and circumvent age verification.')
-parser.add_argument('-o', '--output-dir', type=str, nargs='?', default="", dest='baseDir', metavar='PATH',
+parser.add_argument('-o', '--output-dir', type=str, nargs='?', default="C:\\Users\\polat\\Desktop\\Webtoons", dest='baseDir', metavar='PATH',
                     help='Output directory where comics should be placed.\nIf left blank, the script folder will be used.')
 
 args = parser.parse_args()
@@ -184,7 +185,7 @@ for urlCount, url in enumerate(args.url):
                 # If the page did not yield an access error, go ahead an scrape for image entries.
                 pageHtml = pq(s.get(f'https://tapas.io/episode/{pageData["id"]}').content)
 
-                printLine('Downloaded image data from {} images (pages {}/{})...'.format(allImgCount, pageCount + pageOffset, len(data) + pageOffset), True)
+                printLine('Downloading image data (pages {}/{})...'.format(allImgCount, pageCount + pageOffset, len(data) + pageOffset), True)
 
                 pageData['title'] = pageHtml('.info__title').text()
 
@@ -206,7 +207,19 @@ for urlCount, url in enumerate(args.url):
                     with open(os.path.join(savePath, check_path('{} - {} - {} - {} - #{}.{}'.format(lead0(imgCount + imgOffset, allImgCount + imgOffset), lead0(pageCount + pageOffset, len(pageData) + pageOffset),
                                                                                                     lead0(imgOfPageCount, len(pageData['imgs'])), pageData['title'], pageData['id'], img[img.rindex('.') + 1:]),
                                                                 fat=args.restrict_characters)), 'wb') as f:
-                        f.write(s.get(img).content)
+                        try:
+                            f.write(s.get(img).content)
+                        except requests.exceptions.ConnectionError:
+                            printLine('Connection error, retrying in 3 seconds', True)
+                            time.sleep(1)
+                            printLine('Connection error, retrying in 2 seconds', True)
+                            time.sleep(1)
+                            printLine('Connection error, retrying in 1 seconds', True)
+                            time.sleep(1)
+                            f.write(s.get(img).content)
+                            
+                        time.sleep(0.5)
+                        print("Downloading finished for the page")
 
                     imgCount += 1
 
